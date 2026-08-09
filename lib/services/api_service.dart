@@ -628,20 +628,17 @@ class ApiService {
     double lat,
     double lon,
   ) async {
-    const apiKey = "a6e995e2f1169cd782fd2a5535dcaf43";
-
     final response = await http.get(
-      Uri.parse(
-        "https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=$apiKey&units=metric",
-      ),
+      Uri.parse("$baseUrl/weather?lat=$lat&lon=$lon"),
+      headers: {"Authorization": "Bearer $token"},
     );
-
-    print("Status: ${response.statusCode}");
-    print("Body: ${response.body}");
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
+
+    print("Weather error: ${response.statusCode}");
+    print(response.body);
 
     return null;
   }
