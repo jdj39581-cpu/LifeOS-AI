@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../theme_provider.dart';
 import '../widgets/app_drawer.dart';
 import '../services/api_service.dart';
 
@@ -14,6 +12,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic> profile = {};
   bool loading = true;
+  bool isDarkMode = false;
 
   @override
   void initState() {
@@ -21,8 +20,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     loadProfile();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    isDarkMode = Theme.of(context).brightness == Brightness.dark;
+  }
+
   Future<void> loadProfile() async {
     profile = await ApiService.getProfile();
+
+    if (!mounted) return;
 
     setState(() {
       loading = false;
@@ -31,8 +38,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(title: const Text("Profile"), centerTitle: true),
@@ -45,7 +50,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   radius: 50,
                   child: Icon(Icons.person, size: 60),
                 ),
-
                 const SizedBox(height: 20),
 
                 Center(
@@ -73,9 +77,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: SwitchListTile(
                     secondary: const Icon(Icons.dark_mode),
                     title: const Text("Dark Mode"),
-                    value: themeProvider.isDarkMode,
+                    value: isDarkMode,
                     onChanged: (value) {
-                      themeProvider.toggleTheme();
+                      setState(() {
+                        isDarkMode = value;
+                      });
                     },
                   ),
                 ),

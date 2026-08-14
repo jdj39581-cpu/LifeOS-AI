@@ -1,114 +1,126 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:flutter_tts/flutter_tts.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
 import '../services/api_service.dart';
 
-class AiScreen extends StatefulWidget {
-  const AiScreen({super.key});
+class AIScreen extends StatefulWidget {
+  const AIScreen({super.key});
 
   @override
-  State<AiScreen> createState() => _AiScreenState();
+  State<AIScreen> createState() => _AIScreenState();
 }
 
-class _AiScreenState extends State<AiScreen> {
-  final TextEditingController messageController = TextEditingController();
-
-  final List<Map<String, String>> messages = [];
-
-  bool loading = false;
-  bool isListening = false;
-
-  final stt.SpeechToText speech = stt.SpeechToText();
-  final FlutterTts flutterTts = FlutterTts();
-
-  Future<void> startListening() async {
-    bool available = await speech.initialize();
-
-    if (available) {
-      setState(() {
-        isListening = true;
-      });
-
-      speech.listen(
-        onResult: (result) {
-          setState(() {
-            messageController.text = result.recognizedWords;
-          });
-        },
-      );
-    }
-  }
-
-  Future<void> stopListening() async {
-    await speech.stop();
-
-    setState(() {
-      isListening = false;
-    });
-  }
+class _AIScreenState extends State<AIScreen> {
+  final TextEditingController _controller = TextEditingController();
+  final List<Map<String, String>> _messages = [];
 
   Future<void> sendMessage() async {
-    if (messageController.text.trim().isEmpty) return;
+    if (_controller.text.trim().isEmpty) return;
 
-    String userMessage = messageController.text;
-
-    setState(() {
-      messages.add({"sender": "You", "message": userMessage});
-
-      loading = true;
-      messageController.clear();
-    });
-
-    String reply = await ApiService.askAI(userMessage);
-
-    await flutterTts.stop();
+    String question = _controller.text.trim();
 
     setState(() {
-      loading = false;
-
-      messages.add({"sender": "LifeOS AI", "message": reply});
+      _messages.add({"role": "user", "text": question});
+      _controller.clear();
     });
+
+    try {
+      String reply = await ApiService.askAI(question);
+
+      if (!mounted) return;
+
+      setState(() {
+        _messages.add({"role": "ai", "text": reply});
+      });
+    } catch (e) {
+      setState(() {
+        _messages.add({
+          "role": "ai",
+          "text": "Sorry, I couldn't get a response.",
+        });
+      });
+    }
   }
 
   @override
   void dispose() {
-    messageController.dispose();
-    flutterTts.stop();
-    speech.stop();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: const Text("LifeOS AI Assistant"),
-        centerTitle: true,
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        title: const Text("LifeOS AI"),
       ),
       body: Column(
         children: [
+          if (_messages.isEmpty) ...[
+            const SizedBox(height: 30),
+
+            Container(
+              padding: const EdgeInsets.all(25),
+              decoration: BoxDecoration(
+                color: Colors.cyan.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.smart_toy,
+                size: 70,
+                color: Color(0xFF06B6D4),
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: AnimatedTextKit(
+                repeatForever: false,
+                totalRepeatCount: 1,
+                animatedTexts: [
+                  TypewriterAnimatedText(
+                    "Hello Joyson 👋\nI'm LifeOS AI.\nHow can I help you today?",
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    speed: const Duration(milliseconds: 45),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           Expanded(
             child: ListView.builder(
-              itemCount: messages.length,
+              padding: const EdgeInsets.all(16),
+              itemCount: _messages.length,
               itemBuilder: (context, index) {
-                bool isUser = messages[index]["sender"] == "You";
+                final msg = _messages[index];
+                final isUser = msg["role"] == "user";
 
                 return Align(
                   alignment: isUser
                       ? Alignment.centerRight
                       : Alignment.centerLeft,
                   child: Container(
-                    margin: const EdgeInsets.all(8),
-                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.all(14),
+                    constraints: const BoxConstraints(maxWidth: 280),
                     decoration: BoxDecoration(
-                      color: isUser ? Colors.blue : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(12),
+                      color: isUser
+                          ? const Color(0xFF06B6D4)
+                          : Colors.white.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                     child: Text(
-                      messages[index]["message"]!,
-                      style: TextStyle(
-                        color: isUser ? Colors.white : Colors.black,
-                      ),
+                      msg["text"]!,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
                     ),
                   ),
                 );
@@ -116,43 +128,32 @@ class _AiScreenState extends State<AiScreen> {
             ),
           ),
 
-          if (loading)
-            const Padding(
-              padding: EdgeInsets.all(10),
-              child: CircularProgressIndicator(),
-            ),
-
-          Padding(
-            padding: const EdgeInsets.all(10),
+          Container(
+            padding: const EdgeInsets.fromLTRB(15, 10, 15, 18),
+            decoration: const BoxDecoration(color: Color(0xFF111827)),
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.mic, color: Colors.cyan),
+                  onPressed: () {},
+                ),
+
                 Expanded(
                   child: TextField(
-                    controller: messageController,
+                    controller: _controller,
+                    style: const TextStyle(color: Colors.white),
                     decoration: const InputDecoration(
-                      hintText: "Ask LifeOS AI...",
-                      border: OutlineInputBorder(),
+                      border: InputBorder.none,
+                      hintText: "Ask anything...",
+                      hintStyle: TextStyle(color: Colors.white54),
                     ),
+                    onSubmitted: (_) => sendMessage(),
                   ),
                 ),
 
                 IconButton(
-                  onPressed: () {
-                    if (isListening) {
-                      stopListening();
-                    } else {
-                      startListening();
-                    }
-                  },
-                  icon: Icon(
-                    isListening ? Icons.mic : Icons.mic_none,
-                    color: Colors.red,
-                  ),
-                ),
-
-                IconButton(
+                  icon: const Icon(Icons.send, color: Colors.cyan),
                   onPressed: sendMessage,
-                  icon: const Icon(Icons.send),
                 ),
               ],
             ),

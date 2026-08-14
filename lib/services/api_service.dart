@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = "http://192.168.1.105:8000";
+  static const String baseUrl = "https://lifeos-ai-zois.onrender.com";
 
   static String token = "";
 
@@ -536,18 +536,25 @@ class ApiService {
 
   // UPLOAD DOCUMENT
   static Future<bool> uploadDocument(String filePath) async {
-    var request = http.MultipartRequest(
-      "POST",
-      Uri.parse("$baseUrl/documents"),
-    );
+    try {
+      var request = http.MultipartRequest(
+        "POST",
+        Uri.parse("$baseUrl/documents"),
+      );
 
-    request.headers["Authorization"] = "Bearer $token";
+      request.headers["Authorization"] = "Bearer $token";
 
-    request.files.add(await http.MultipartFile.fromPath("file", filePath));
+      request.files.add(await http.MultipartFile.fromPath("file", filePath));
 
-    var response = await request.send();
+      var response = await request.send();
 
-    return response.statusCode == 200;
+      print("Upload Status: ${response.statusCode}");
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print("Upload Error: $e");
+      return false;
+    }
   }
 
   static Future<String?> downloadDocument(int id, String fileName) async {
@@ -641,5 +648,19 @@ class ApiService {
     print(response.body);
 
     return null;
+  }
+
+  static Future<bool> register(
+    String name,
+    String email,
+    String password,
+  ) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/register"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"name": name, "email": email, "password": password}),
+    );
+
+    return response.statusCode == 200;
   }
 }

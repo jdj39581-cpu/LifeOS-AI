@@ -1,9 +1,9 @@
-import 'dart:io';
-
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_filex/open_filex.dart';
-
+import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 
 class DocumentsScreen extends StatefulWidget {
@@ -24,9 +24,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   }
 
   Future<void> loadDocuments() async {
-    setState(() {
-      loading = true;
-    });
+    setState(() => loading = true);
 
     final data = await ApiService.getDocuments();
 
@@ -39,55 +37,91 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   }
 
   Future<void> uploadDocument() async {
-    final result = await FilePicker.platform.pickFiles(allowMultiple: false);
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      withData: true,
+    );
 
     if (result == null) return;
 
-    final path = result.files.single.path;
+    final file = result.files.single;
 
-    if (path == null) return;
+    try {
+      var request = http.MultipartRequest(
+        "POST",
+        Uri.parse("${ApiService.baseUrl}/documents"),
+      );
 
-    final success = await ApiService.uploadDocument(path);
+      request.headers["Authorization"] = "Bearer ${ApiService.token}";
 
-    if (!mounted) return;
+      if (kIsWeb) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            "file",
+            file.bytes!,
+            filename: file.name,
+          ),
+        );
+      } else {
+        request.files.add(
+          await http.MultipartFile.fromPath("file", file.path!),
+        );
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success ? "Document Uploaded Successfully" : "Upload Failed",
-        ),
-      ),
-    );
+      var response = await request.send();
 
-    if (success) {
-      await loadDocuments();
+      if (!mounted) return;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Document Uploaded Successfully")),
+        );
+        await loadDocuments();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Upload Failed (${response.statusCode})")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Upload Error: $e")));
     }
   }
 
   Future<void> openDocument(dynamic document) async {
     final id = document["id"];
-    final fileName = document["file_name"];
 
-    if (id == null || fileName == null) return;
+    try {
+      final response = await http.get(
+        Uri.parse("${ApiService.baseUrl}/documents/$id/download"),
+        headers: {"Authorization": "Bearer ${ApiService.token}"},
+      );
 
-    if (!mounted) return;
+      if (response.statusCode == 200) {
+        final blob = html.Blob([response.bodyBytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Opening document...")));
+        // Opens PDF or image in a new browser tab
+        html.window.open(url, "_blank");
 
-    final path = await ApiService.downloadDocument(id, fileName);
+        Future.delayed(const Duration(seconds: 10), () {
+          html.Url.revokeObjectUrl(url);
+        });
+      } else {
+        print("URL: ${ApiService.baseUrl}/documents/$id/download");
+        print("Response: ${response.body}");
 
-    if (!mounted) return;
-
-    if (path == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("404: ${response.body}")));
+      }
+    } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Unable to open document")));
-      return;
+      ).showSnackBar(SnackBar(content: Text("Open failed: $e")));
     }
-
-    await OpenFilex.open(path);
   }
 
   Future<void> deleteDocument(int id) async {
@@ -108,12 +142,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Documents")),
-
       floatingActionButton: FloatingActionButton(
         onPressed: uploadDocument,
         child: const Icon(Icons.upload_file),
       ),
-
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : documents.isEmpty
@@ -135,20 +167,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                         Icons.insert_drive_file,
                         color: Colors.blue,
                       ),
-
                       title: Text(doc["file_name"] ?? "Document"),
-
                       subtitle: Text(doc["uploaded_at"] ?? ""),
-
-                      onTap: () {
-                        openDocument(doc);
-                      },
-
+                      onTap: () => openDocument(doc),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          deleteDocument(doc["id"]);
-                        },
+                        onPressed: () => deleteDocument(doc["id"]),
                       ),
                     ),
                   );
