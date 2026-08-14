@@ -15,7 +15,10 @@ from fastapi import (
     UploadFile,
     File,
 )
+from pathlib import Path
+from fastapi import UploadFile, File
 from fastapi.responses import FileResponse
+import  mimetypes
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
@@ -38,7 +41,7 @@ load_dotenv()
 
 db = psycopg2.connect(os.getenv("DATABASE_URL"))
 db.autocommit = True
-cursor = db.cursor()
+cursor = db.cursor()    
 
 
 # ============================================================
@@ -1382,34 +1385,22 @@ def view_file(
 # DOCUMENTS
 # ============================================================
 
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 @app.post("/documents")
-def upload_document(
+async def upload_document(
     file: UploadFile = File(...),
     payload=Depends(get_current_user)
 ):
-
-    os.makedirs(
-        "uploads",
-        exist_ok=True
-    )
-
-    file_path = os.path.join(
-        "uploads",
-        file.filename
-    )
+    file_path = UPLOAD_DIR / file.filename
 
     with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
+        shutil.copyfileobj(file.file, buffer)
 
     pdf_text = ""
-
     if file.filename.lower().endswith(".pdf"):
-        pdf_text = extract_pdf_text(
-            file_path
-        )
+        pdf_text = extract_pdf_text(str(file_path))
 
     cursor.execute(
         """
@@ -1419,7 +1410,7 @@ def upload_document(
         """,
         (
             file.filename,
-            file_path,
+            str(file_path),
             payload["sub"],
             pdf_text
         )
@@ -1464,47 +1455,40 @@ def get_documents(
 
 
 @app.get("/documents/{doc_id}/download")
-def download_document(
-    doc_id: int,
-    payload=Depends(get_current_user)
-):
-
+def download_document(doc_id: int, payload=Depends(get_current_user)):
     cursor.execute(
         """
         SELECT file_name, file_path
         FROM documents
-        WHERE id=%s
-        AND user_email=%s
+        WHERE id=%s AND user_email=%s
         """,
-        (
-            doc_id,
-            payload["sub"]
-        )
+        (doc_id, payload["sub"])
     )
 
     result = cursor.fetchone()
 
     if result is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Document not found"
-        )
+        raise HTTPException(status_code=404, detail="Document not found")
 
-    file_name = result[0]
-    file_path = result[1]
+    file_name, file_path = result
 
-    if not os.path.exists(file_path):
-        raise HTTPException(
-            status_code=404,
-            detail="File not found on server"
-        )
+    file_path = Path(file_path)
+
+    if not file_path.is_absolute():
+        file_path = UPLOAD_DIR / file_path.name
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on server")
+
+    media_type, _ = mimetypes.guess_type(str(file_path))
+    if media_type is None:
+        media_type = "application/octet-stream"
 
     return FileResponse(
-        path=file_path,
-        filename=file_name,
-        media_type="application/octet-stream"
+        path=str(file_path),
+        media_type=media_type,
+        filename=file_name
     )
-
 
 @app.delete("/documents/{doc_id}")
 def delete_document(
@@ -1636,160 +1620,35 @@ def get_latest_pdf(user_email):
 # ============================================================
 
 @app.post("/ai")
-def ai_assistant(
-    chat: ChatMessage,
-    payload=Depends(get_current_user)
-):
-
-    email = payload["sub"]
-
-    text = chat.message.lower()
-
-    pdf_text = get_latest_pdf(
-        email
-    )
-
-    memory = get_memory(
-        email
-    )
-
-    cursor.execute(
-        """
-        SELECT role, message
-        FROM ai_chat_history
-        WHERE user_email=%s
-        ORDER BY created_at ASC
-        LIMIT 10
-        """,
-        (email,)
-    )
-
-    history = cursor.fetchall()
-
-    messages = [
-        {
-            "role": "system",
-            "content": f"""
-You are LifeOS AI.
-
-User Memory:
-{memory}
-
-PDF Context:
-{pdf_text}
-
-Use the memory whenever the user asks
-about themselves.
-
-Use the PDF context when the question
-is related to the uploaded document.
-
-If the information is not available,
-politely say you don't know.
-
-Give simple and useful answers.
-"""
-        }
-    ]
-
-    for row in history:
-
-        messages.append(
-            {
-                "role": row[0],
-                "content": row[1]
-            }
-        )
-
-    messages.append(
-        {
-            "role": "user",
-            "content": chat.message
-        }
-    )
-
+async def ai_chat(data: dict):
     try:
-
-        response = client.chat.completions.create(
-            model="openai/gpt-oss-20b:free",
-            messages=messages
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "openrouter/auto",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are LifeOS AI, a smart and friendly assistant. Answer any question clearly.",
+                    },
+                    {
+                        "role": "user",
+                        "content": data["message"],
+                    },
+                ],
+            },
+            timeout=60,
         )
 
-        reply = response.choices[0].message.content
-
-        cursor.execute(
-            """
-            INSERT INTO ai_chat_history
-            (user_email, role, message)
-            VALUES (%s, %s, %s)
-            """,
-            (
-                email,
-                "user",
-                chat.message
-            )
-        )
-
-        cursor.execute(
-            """
-            INSERT INTO ai_chat_history
-            (user_email, role, message)
-            VALUES (%s, %s, %s)
-            """,
-            (
-                email,
-                "assistant",
-                reply
-            )
-        )
-
-        db.commit()
+        result = response.json()
+        return {"reply": result["choices"][0]["message"]["content"]}
 
     except Exception as e:
-
-        print(
-            "OpenRouter Error:",
-            e
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail="AI is temporarily unavailable"
-        )
-
-    # ========================================================
-    # MEMORY DETECTION
-    # ========================================================
-
-    if "my name is" in text:
-
-        name = text.split(
-            "my name is",
-            1
-        )[1].strip()
-
-        save_memory(
-            email,
-            "name",
-            name
-        )
-
-    if "my favorite language is" in text:
-
-        language = text.split(
-            "my favorite language is",
-            1
-        )[1].strip()
-
-        save_memory(
-            email,
-            "favorite_language",
-            language
-        )
-
-    return {
-        "reply": reply
-    }
+        return {"reply": f"Error: {str(e)}"}
 
 
 # ============================================================
