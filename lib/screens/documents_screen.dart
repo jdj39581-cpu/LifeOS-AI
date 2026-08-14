@@ -100,22 +100,17 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       );
 
       if (response.statusCode == 200) {
-        final blob = html.Blob([response.bodyBytes]);
+        final contentType =
+            response.headers["content-type"] ?? "application/octet-stream";
+
+        final blob = html.Blob([response.bodyBytes], contentType);
         final url = html.Url.createObjectUrlFromBlob(blob);
 
-        // Opens PDF or image in a new browser tab
         html.window.open(url, "_blank");
-
-        Future.delayed(const Duration(seconds: 10), () {
-          html.Url.revokeObjectUrl(url);
-        });
       } else {
-        print("URL: ${ApiService.baseUrl}/documents/$id/download");
-        print("Response: ${response.body}");
-
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("404: ${response.body}")));
+        ).showSnackBar(SnackBar(content: Text(response.body)));
       }
     } catch (e) {
       ScaffoldMessenger.of(
