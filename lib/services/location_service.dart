@@ -1,11 +1,11 @@
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
-  static Future<Position?> getLocation() async {
+  static Future<Position> getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
     if (!serviceEnabled) {
-      return null;
+      throw Exception("Location services are disabled.");
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -16,11 +16,16 @@ class LocationService {
 
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      return null;
+      throw Exception("Location permission denied.");
     }
 
     return await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
+  }
+
+  // Compatibility method for old code
+  static Future<Position> getLocation() async {
+    return await getCurrentLocation();
   }
 }

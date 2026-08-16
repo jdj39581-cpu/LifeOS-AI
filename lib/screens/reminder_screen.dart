@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class ReminderScreen extends StatefulWidget {
   const ReminderScreen({super.key});
@@ -45,9 +46,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
               controller: titleController,
               decoration: const InputDecoration(labelText: "Reminder Title"),
             ),
-
             const SizedBox(height: 10),
-
             TextField(
               controller: timeController,
               readOnly: true,
@@ -92,17 +91,31 @@ class _ReminderScreenState extends State<ReminderScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
           ),
-
           ElevatedButton(
             onPressed: () async {
+              if (titleController.text.trim().isEmpty ||
+                  timeController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Please enter title and time")),
+                );
+                return;
+              }
+
               bool success = await ApiService.addReminder(
-                titleController.text,
+                titleController.text.trim(),
                 timeController.text,
               );
 
-              Navigator.pop(context);
-
               if (success) {
+                // Schedule local notification
+                await NotificationService.scheduleNotification(
+                  id: DateTime.now().millisecondsSinceEpoch % 100000,
+                  title: titleController.text.trim(),
+                  body: "Time to complete your reminder.",
+                  dateTime: DateTime.parse(timeController.text),
+                );
+
+                Navigator.pop(context);
                 await loadReminders();
 
                 if (!mounted) return;
@@ -111,6 +124,10 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   const SnackBar(content: Text("Reminder Added Successfully")),
                 );
               } else {
+                Navigator.pop(context);
+
+                if (!mounted) return;
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Failed to Add Reminder")),
                 );
@@ -141,11 +158,8 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   ),
                   child: ListTile(
                     leading: const CircleAvatar(child: Icon(Icons.alarm)),
-
                     title: Text(reminders[index]["title"]),
-
                     subtitle: Text(reminders[index]["reminder_time"]),
-
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {

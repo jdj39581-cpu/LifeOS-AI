@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'screens/ai_screen.dart';
 import 'screens/task_screens.dart';
 import 'screens/notes_screen.dart';
@@ -14,9 +15,13 @@ import 'screens/documents_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/search_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
-  runApp(const LifeOSAI());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.init();
+
+  runApp(const LifeOSAI()); // ✅ Fixed
 }
 
 class LifeOSAI extends StatelessWidget {
@@ -29,6 +34,7 @@ class LifeOSAI extends StatelessWidget {
       title: 'LifeOS AI',
       home: const SplashScreen(),
       routes: {
+        "/dashboard": (context) => const DashboardScreen(),
         "/tasks": (context) => const TaskScreen(),
         "/notes": (context) => const NotesScreen(),
         "/reminders": (context) => const ReminderScreen(),

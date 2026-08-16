@@ -1,107 +1,207 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
 
-class AnalyticsScreen extends StatefulWidget {
+class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
-}
+  Widget build(BuildContext context) {
+    // Replace these with real API values later
+    const int completedTasks = 8;
+    const int pendingTasks = 3;
+    const double totalExpense = 2450;
+    const int todayEvents = 2;
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> {
-  Map<String, dynamic> analytics = {};
-  bool loading = true;
+    final int totalTasks = completedTasks + pendingTasks;
+    final double progress = totalTasks == 0 ? 0 : completedTasks / totalTasks;
 
-  @override
-  void initState() {
-    super.initState();
-    loadAnalytics();
-  }
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        title: const Text("Analytics"),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Your Productivity",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 18),
 
-  Future<void> loadAnalytics() async {
-    setState(() {
-      loading = true;
-    });
+            Row(
+              children: [
+                Expanded(
+                  child: statCard(
+                    Icons.check_circle,
+                    completedTasks.toString(),
+                    "Completed",
+                    Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: statCard(
+                    Icons.pending_actions,
+                    pendingTasks.toString(),
+                    "Pending",
+                    Colors.orange,
+                  ),
+                ),
+              ],
+            ),
 
-    analytics = await ApiService.getAnalytics();
+            const SizedBox(height: 12),
 
-    setState(() {
-      loading = false;
-    });
-  }
+            Row(
+              children: [
+                Expanded(
+                  child: statCard(
+                    Icons.account_balance_wallet,
+                    "₹${totalExpense.toInt()}",
+                    "Expenses",
+                    Colors.cyan,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: statCard(
+                    Icons.calendar_today,
+                    todayEvents.toString(),
+                    "Events",
+                    Colors.purple,
+                  ),
+                ),
+              ],
+            ),
 
-  Widget statCard(String title, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 3,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color,
-          child: Icon(icon, color: Colors.white),
-        ),
-        title: Text(title),
-        trailing: Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            const SizedBox(height: 28),
+
+            const Text(
+              "Task Progress",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "${(progress * 100).toInt()}% Completed",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 12,
+                      backgroundColor: Colors.white12,
+                      valueColor: const AlwaysStoppedAnimation(
+                        Colors.cyanAccent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            const Text(
+              "Today's Summary",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "• You completed 8 tasks this week.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "• 3 tasks are still pending.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "• Today's expenses: ₹2450.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "• You have 2 events today.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Analytics"), centerTitle: true),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: loadAnalytics,
-              child: ListView(
-                padding: const EdgeInsets.all(12),
-                children: [
-                  statCard(
-                    "Total Tasks",
-                    analytics["total_tasks"].toString(),
-                    Icons.task,
-                    Colors.blue,
-                  ),
-
-                  statCard(
-                    "Completed Tasks",
-                    analytics["completed_tasks"].toString(),
-                    Icons.check_circle,
-                    Colors.green,
-                  ),
-
-                  statCard(
-                    "Pending Tasks",
-                    analytics["pending_tasks"].toString(),
-                    Icons.pending_actions,
-                    Colors.orange,
-                  ),
-
-                  statCard(
-                    "Total Goals",
-                    analytics["total_goals"].toString(),
-                    Icons.flag,
-                    Colors.purple,
-                  ),
-
-                  statCard(
-                    "Completed Goals",
-                    analytics["completed_goals"].toString(),
-                    Icons.emoji_events,
-                    Colors.teal,
-                  ),
-
-                  statCard(
-                    "Total Expenses",
-                    "₹${analytics["total_expense"]}",
-                    Icons.account_balance_wallet,
-                    Colors.red,
-                  ),
-                ],
-              ),
+  Widget statCard(IconData icon, String value, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: Colors.white60)),
+        ],
+      ),
     );
   }
 }
