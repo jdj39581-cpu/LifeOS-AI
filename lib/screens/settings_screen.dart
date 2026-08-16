@@ -126,7 +126,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("Settings")),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

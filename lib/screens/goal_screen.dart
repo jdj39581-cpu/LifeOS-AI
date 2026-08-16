@@ -109,7 +109,8 @@ class _GoalScreenState extends State<GoalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Goals"), centerTitle: true),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("Goals"), centerTitle: true),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : goals.isEmpty

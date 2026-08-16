@@ -143,7 +143,8 @@ class _ReminderScreenState extends State<ReminderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Reminders"), centerTitle: true),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("Reminders"), centerTitle: true),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : reminders.isEmpty

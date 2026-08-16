@@ -64,9 +64,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0F172A)
-          : const Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: Column(
           children: [

@@ -16,6 +16,8 @@ import 'screens/profile_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/search_screen.dart';
 import 'services/notification_service.dart';
+import 'theme/lifeos_theme.dart';
+import 'theme/lifeos_ui.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,7 @@ class LifeOSAI extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: LifeOSUI.bg),
       debugShowCheckedModeBanner: false,
       title: 'LifeOS AI',
       home: const SplashScreen(),

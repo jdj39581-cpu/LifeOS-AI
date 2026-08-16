@@ -1,9 +1,12 @@
-import 'dart:html' as html;
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+
 import '../services/api_service.dart';
 
 class DocumentsScreen extends StatefulWidget {
@@ -99,20 +102,29 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
         headers: {"Authorization": "Bearer ${ApiService.token}"},
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
-        final contentType =
-            response.headers["content-type"] ?? "application/octet-stream";
+        if (kIsWeb) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Download documents from the web version."),
+            ),
+          );
+        } else {
+          final dir = await getTemporaryDirectory();
+          final file = File("${dir.path}/${document["file_name"]}");
 
-        final blob = html.Blob([response.bodyBytes], contentType);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-
-        html.window.open(url, "_blank");
+          await file.writeAsBytes(response.bodyBytes);
+          await OpenFilex.open(file.path);
+        }
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response.body)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Download failed (${response.statusCode})")),
+        );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Open failed: $e")));
@@ -136,7 +148,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Documents")),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        title: const Text("Documents"),
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: uploadDocument,
         child: const Icon(Icons.upload_file),
@@ -144,7 +161,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : documents.isEmpty
-          ? const Center(child: Text("No Documents"))
+          ? const Center(
+              child: Text(
+                "No Documents",
+                style: TextStyle(color: Colors.white),
+              ),
+            )
           : RefreshIndicator(
               onRefresh: loadDocuments,
               child: ListView.builder(
@@ -153,6 +175,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   final doc = documents[index];
 
                   return Card(
+                    color: const Color(0xFF1E293B),
                     margin: const EdgeInsets.symmetric(
                       horizontal: 10,
                       vertical: 5,
@@ -160,10 +183,16 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                     child: ListTile(
                       leading: const Icon(
                         Icons.insert_drive_file,
-                        color: Colors.blue,
+                        color: Colors.cyan,
                       ),
-                      title: Text(doc["file_name"] ?? "Document"),
-                      subtitle: Text(doc["uploaded_at"] ?? ""),
+                      title: Text(
+                        doc["file_name"] ?? "Document",
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      subtitle: Text(
+                        doc["uploaded_at"] ?? "",
+                        style: const TextStyle(color: Colors.white70),
+                      ),
                       onTap: () => openDocument(doc),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),

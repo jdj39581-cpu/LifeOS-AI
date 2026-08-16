@@ -1,4 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
+
 import '../services/api_service.dart';
 
 class NotesScreen extends StatefulWidget {
@@ -19,15 +24,45 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Future<void> loadNotes() async {
-    setState(() {
-      loading = true;
-    });
+    setState(() => loading = true);
 
     notes = await ApiService.getNotes();
 
-    setState(() {
-      loading = false;
-    });
+    if (!mounted) return;
+    setState(() => loading = false);
+  }
+
+  Future<void> exportNoteToPDF(Map note) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              note["title"],
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text(note["content"]),
+          ],
+        ),
+      ),
+    );
+
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File("${dir.path}/${note["title"]}.pdf");
+
+    await file.writeAsBytes(await pdf.save());
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("PDF Saved: ${note["title"]}.pdf")));
+
+    await OpenFilex.open(file.path);
   }
 
   Future<void> showAddNoteDialog() async {
@@ -36,7 +71,7 @@ class _NotesScreenState extends State<NotesScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text("Add Note"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -45,9 +80,7 @@ class _NotesScreenState extends State<NotesScreen> {
               controller: titleController,
               decoration: const InputDecoration(labelText: "Title"),
             ),
-
             const SizedBox(height: 10),
-
             TextField(
               controller: contentController,
               maxLines: 4,
@@ -57,14 +90,10 @@ class _NotesScreenState extends State<NotesScreen> {
         ),
         actions: [
           TextButton(
+            onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
-            onPressed: () {
-              Navigator.pop(context);
-            },
           ),
-
           ElevatedButton(
-            child: const Text("Save"),
             onPressed: () async {
               bool success = await ApiService.addNote(
                 titleController.text,
@@ -83,6 +112,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 );
               }
             },
+            child: const Text("Save"),
           ),
         ],
       ),
@@ -109,7 +139,7 @@ class _NotesScreenState extends State<NotesScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text("Edit Note"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -158,31 +188,70 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  void showNoteOptions(Map note) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text("Edit"),
+              onTap: () {
+                Navigator.pop(context);
+                showEditNoteDialog(note);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+              title: const Text("Export as PDF"),
+              onTap: () {
+                Navigator.pop(context);
+                exportNoteToPDF(note);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text("Delete"),
+              onTap: () {
+                Navigator.pop(context);
+                deleteNote(note["id"]);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("My Notes"), centerTitle: true),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("My Notes"), centerTitle: true),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : notes.isEmpty
           ? const Center(child: Text("No Notes Found"))
           : ListView.builder(
               itemCount: notes.length,
-              itemBuilder: (context, index) {
+              itemBuilder: (_, index) {
+                final note = notes[index];
+
                 return Card(
                   margin: const EdgeInsets.all(10),
                   child: ListTile(
-                    onTap: () {
-                      showEditNoteDialog(notes[index]);
-                    },
                     leading: const Icon(Icons.note, color: Colors.blue),
-                    title: Text(notes[index]["title"]),
-                    subtitle: Text(notes[index]["content"]),
+                    title: Text(note["title"]),
+                    subtitle: Text(
+                      note["content"],
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () => showEditNoteDialog(note),
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        deleteNote(notes[index]["id"]);
-                      },
+                      icon: const Icon(Icons.more_vert),
+                      onPressed: () => showNoteOptions(note),
                     ),
                   ),
                 );

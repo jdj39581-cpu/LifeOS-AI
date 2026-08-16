@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/lifeos_card.dart';
 
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
@@ -11,6 +12,7 @@ class ExpenseScreen extends StatefulWidget {
 class _ExpenseScreenState extends State<ExpenseScreen> {
   List expenses = [];
   bool loading = true;
+
   @override
   void initState() {
     super.initState();
@@ -18,15 +20,12 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   }
 
   Future<void> loadExpenses() async {
-    setState(() {
-      loading = true;
-    });
+    setState(() => loading = true);
 
     expenses = await ApiService.getExpenses();
 
-    setState(() {
-      loading = false;
-    });
+    if (!mounted) return;
+    setState(() => loading = false);
   }
 
   Future<void> showAddExpenseDialog() async {
@@ -38,7 +37,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text("Add Expense"),
         content: SingleChildScrollView(
           child: Column(
@@ -51,9 +52,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   prefixIcon: Icon(Icons.title),
                 ),
               ),
-
-              const SizedBox(height: 10),
-
+              const SizedBox(height: 12),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
@@ -62,9 +61,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   prefixIcon: Icon(Icons.currency_rupee),
                 ),
               ),
-
-              const SizedBox(height: 10),
-
+              const SizedBox(height: 12),
               TextField(
                 controller: categoryController,
                 decoration: const InputDecoration(
@@ -72,9 +69,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                   prefixIcon: Icon(Icons.category),
                 ),
               ),
-
-              const SizedBox(height: 10),
-
+              const SizedBox(height: 12),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
                 title: Text(selectedDate.toString().split(" ")[0]),
@@ -86,10 +81,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     firstDate: DateTime(2024),
                     lastDate: DateTime(2035),
                   );
-
-                  if (picked != null) {
-                    selectedDate = picked;
-                  }
+                  if (picked != null) selectedDate = picked;
                 },
               ),
             ],
@@ -139,32 +131,45 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   double get totalExpense {
     double total = 0;
-
     for (var expense in expenses) {
       total += double.parse(expense["amount"].toString());
     }
-
     return total;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Expenses"), centerTitle: true),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        title: const Text("Expenses"),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+      ),
       body: Column(
         children: [
-          Card(
-            margin: const EdgeInsets.all(15),
-            child: ListTile(
-              leading: const Icon(
-                Icons.account_balance_wallet,
-                color: Colors.green,
+          Padding(
+            padding: const EdgeInsets.all(15),
+            child: LifeOSCard(
+              child: ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0x2206B6D4),
+                  child: Icon(Icons.account_balance_wallet, color: Colors.cyan),
+                ),
+                title: const Text(
+                  "Total Expenses",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  "₹${totalExpense.toStringAsFixed(0)}",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.cyan,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              title: const Text(
-                "Total Expenses",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text("₹$totalExpense"),
             ),
           ),
           Expanded(
@@ -173,37 +178,66 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                 : expenses.isEmpty
                 ? const Center(child: Text("No Expenses Found"))
                 : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
                     itemCount: expenses.length,
                     itemBuilder: (context, index) {
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 5,
-                        ),
-                        child: ListTile(
-                          leading: const Icon(
-                            Icons.account_balance_wallet,
-                            color: Colors.green,
-                          ),
-                          title: Text(expenses[index]["title"]),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Category: ${expenses[index]["category"]}"),
-                              Text("Date: ${expenses[index]["expense_date"]}"),
-                            ],
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () async {
-                              bool success = await ApiService.deleteExpense(
-                                expenses[index]["id"],
-                              );
+                      final expense = expenses[index];
 
-                              if (success) {
-                                await loadExpenses();
-                              }
-                            },
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: LifeOSCard(
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Color(0x2206B6D4),
+                              child: Icon(
+                                Icons.currency_rupee,
+                                color: Colors.cyan,
+                              ),
+                            ),
+                            title: Text(expense["title"]),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text("Category: ${expense["category"]}"),
+                                Text("Date: ${expense["expense_date"]}"),
+                              ],
+                            ),
+                            trailing: SizedBox(
+                              width: 55,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "₹${expense["amount"]}",
+                                    style: const TextStyle(
+                                      color: Colors.cyan,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                      size: 20,
+                                    ),
+                                    onPressed: () async {
+                                      bool success =
+                                          await ApiService.deleteExpense(
+                                            expense["id"],
+                                          );
+                                      if (success) {
+                                        await loadExpenses();
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       );
@@ -212,9 +246,19 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: showAddExpenseDialog,
-        child: const Icon(Icons.add),
+      floatingActionButton: Container(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Color(0xFF06B6D4), Color(0xFF7C3AED)],
+          ),
+        ),
+        child: FloatingActionButton(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          onPressed: showAddExpenseDialog,
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

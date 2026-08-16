@@ -1,207 +1,128 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
-class AnalyticsScreen extends StatelessWidget {
+class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Replace these with real API values later
-    const int completedTasks = 8;
-    const int pendingTasks = 3;
-    const double totalExpense = 2450;
-    const int todayEvents = 2;
+  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
+}
 
-    final int totalTasks = completedTasks + pendingTasks;
-    final double progress = totalTasks == 0 ? 0 : completedTasks / totalTasks;
+class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  bool loading = true;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
-        title: const Text("Analytics"),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(18),
+  int completedTasks = 0;
+  int pendingTasks = 0;
+  int totalNotes = 0;
+  int totalReminders = 0;
+  int totalEvents = 0;
+  double totalExpense = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    loadAnalytics();
+  }
+
+  Future<void> loadAnalytics() async {
+    setState(() => loading = true);
+
+    try {
+      final tasks = await ApiService.getTasks();
+      final notes = await ApiService.getNotes();
+      final reminders = await ApiService.getReminders();
+      final expenses = await ApiService.getExpenses();
+      final events = await ApiService.getEvents();
+
+      completedTasks = tasks.where((t) => t["status"] == "Completed").length;
+      pendingTasks = tasks.length - completedTasks;
+      totalNotes = notes.length;
+      totalReminders = reminders.length;
+      totalEvents = events.length;
+
+      totalExpense = 0;
+      for (var e in expenses) {
+        totalExpense += double.tryParse(e["amount"].toString()) ?? 0;
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() => loading = false);
+  }
+
+  Widget statCard(IconData icon, String title, String value, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Your Productivity",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+            Icon(icon, color: color, size: 30),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 18),
-
-            Row(
-              children: [
-                Expanded(
-                  child: statCard(
-                    Icons.check_circle,
-                    completedTasks.toString(),
-                    "Completed",
-                    Colors.green,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: statCard(
-                    Icons.pending_actions,
-                    pendingTasks.toString(),
-                    "Pending",
-                    Colors.orange,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: statCard(
-                    Icons.account_balance_wallet,
-                    "₹${totalExpense.toInt()}",
-                    "Expenses",
-                    Colors.cyan,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: statCard(
-                    Icons.calendar_today,
-                    todayEvents.toString(),
-                    "Events",
-                    Colors.purple,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 28),
-
-            const Text(
-              "Task Progress",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "${(progress * 100).toInt()}% Completed",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 12,
-                      backgroundColor: Colors.white12,
-                      valueColor: const AlwaysStoppedAnimation(
-                        Colors.cyanAccent,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            const Text(
-              "Today's Summary",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "• You completed 8 tasks this week.",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "• 3 tasks are still pending.",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "• Today's expenses: ₹2450.",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "• You have 2 events today.",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
+            Text(title),
           ],
         ),
       ),
     );
   }
 
-  Widget statCard(IconData icon, String value, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("Analytics")),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: loadAnalytics,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 1.3,
+                    children: [
+                      statCard(
+                        Icons.check_circle,
+                        "Completed",
+                        "$completedTasks",
+                        Colors.green,
+                      ),
+                      statCard(
+                        Icons.pending_actions,
+                        "Pending",
+                        "$pendingTasks",
+                        Colors.orange,
+                      ),
+                      statCard(Icons.note, "Notes", "$totalNotes", Colors.blue),
+                      statCard(
+                        Icons.alarm,
+                        "Reminders",
+                        "$totalReminders",
+                        Colors.purple,
+                      ),
+                      statCard(
+                        Icons.event,
+                        "Events",
+                        "$totalEvents",
+                        Colors.teal,
+                      ),
+                      statCard(
+                        Icons.account_balance_wallet,
+                        "Expenses",
+                        "₹${totalExpense.toInt()}",
+                        Colors.red,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white60)),
-        ],
-      ),
     );
   }
 }

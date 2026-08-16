@@ -42,6 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
       animation: controller,
       builder: (context, child) {
         return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(

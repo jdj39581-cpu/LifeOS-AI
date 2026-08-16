@@ -74,7 +74,8 @@ class _HabitScreenState extends State<HabitScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Habits"), centerTitle: true),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("Habits"), centerTitle: true),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : habits.isEmpty

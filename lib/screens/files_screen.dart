@@ -13,7 +13,8 @@ class _FilesScreenState extends State<FilesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("My Files"), centerTitle: true),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("My Files"), centerTitle: true),
       body: ListView.builder(
         itemCount: files.length,
         itemBuilder: (context, index) {

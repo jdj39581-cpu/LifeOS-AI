@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_drawer.dart';
 import '../services/api_service.dart';
+import '../services/backup_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -36,11 +37,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> backupData() async {
+    await BackupService.createBackup(
+      tasks: [],
+      notes: [],
+      reminders: [],
+      expenses: [],
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Backup Created Successfully")),
+    );
+  }
+
+  Future<void> restoreData() async {
+    final backup = await BackupService.getBackup();
+
+    if (!mounted) return;
+
+    if (backup == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("No Backup Found")));
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Backup Restored (${backup["time"]})")),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       drawer: const AppDrawer(),
-      appBar: AppBar(title: const Text("Profile"), centerTitle: true),
+      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("Profile"), centerTitle: true),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -50,6 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   radius: 50,
                   child: Icon(Icons.person, size: 60),
                 ),
+
                 const SizedBox(height: 20),
 
                 Center(
@@ -83,6 +118,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         isDarkMode = value;
                       });
                     },
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.backup, color: Colors.blue),
+                    title: const Text("Create Backup"),
+                    onTap: backupData,
+                  ),
+                ),
+
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.restore, color: Colors.green),
+                    title: const Text("Restore Backup"),
+                    onTap: restoreData,
                   ),
                 ),
 
