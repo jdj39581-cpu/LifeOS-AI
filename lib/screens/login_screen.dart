@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/google_auth_service.dart';
 import 'register_screen.dart';
-import 'dashboard_screen.dart';
 import 'main_navigation_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   bool loading = false;
   bool hidePassword = true;
+  bool rememberMe = true;
 
   late AnimationController controller;
 
@@ -46,6 +47,8 @@ class _LoginScreenState extends State<LoginScreen>
       passwordController.text.trim(),
     );
 
+    if (!mounted) return;
+
     setState(() => loading = false);
 
     if (ok) {
@@ -60,27 +63,70 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  Widget glowCircle(double size, Color color) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.9, end: 1.1),
-      duration: const Duration(seconds: 3),
-      curve: Curves.easeInOut,
-      builder: (context, value, child) {
-        return Transform.scale(scale: value, child: child);
-      },
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color.withOpacity(0.18),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.6),
-              blurRadius: 60,
-              spreadRadius: 10,
-            ),
-          ],
+  Future<void> googleLogin() async {
+    setState(() => loading = true);
+
+    try {
+      final user = await GoogleAuthService.signInWithGoogle();
+
+      if (!mounted) return;
+
+      setState(() => loading = false);
+
+      if (user != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Google Sign-In cancelled")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => loading = false);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Google Sign-In failed: $e")));
+    }
+  }
+
+  Widget textBox({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool password = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: password ? hidePassword : false,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 20),
+          prefixIcon: Icon(icon, color: Colors.white70),
+          hintText: hint,
+          hintStyle: const TextStyle(color: Colors.white54),
+          suffixIcon: password
+              ? IconButton(
+                  onPressed: () {
+                    setState(() => hidePassword = !hidePassword);
+                  },
+                  icon: Icon(
+                    hidePassword ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.white70,
+                  ),
+                )
+              : null,
         ),
       ),
     );
@@ -92,93 +138,161 @@ class _LoginScreenState extends State<LoginScreen>
       animation: controller,
       builder: (context, child) {
         return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-          body: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.lerp(
-                    const Color(0xFF2563EB),
-                    const Color(0xFF7C3AED),
-                    controller.value,
-                  )!,
-                  Color.lerp(
-                    const Color(0xFF06B6D4),
-                    const Color(0xFF9333EA),
-                    controller.value,
-                  )!,
-                ],
+          backgroundColor: const Color(0xFF090B1A),
+          body: Stack(
+            children: [
+              Positioned(
+                top: -120,
+                left: -80,
+                child: Container(
+                  width: 220,
+                  height: 220,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.purple.withOpacity(.25),
+                  ),
+                ),
               ),
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 80,
-                  left: -30,
-                  child: glowCircle(170, const Color(0xFF7C3AED)),
+
+              Positioned(
+                bottom: -120,
+                right: -80,
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.blue.withOpacity(.25),
+                  ),
                 ),
-                Positioned(
-                  bottom: 100,
-                  right: -40,
-                  child: glowCircle(220, const Color(0xFF06B6D4)),
-                ),
-                Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(22),
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.8, end: 1),
-                      duration: const Duration(milliseconds: 900),
-                      curve: Curves.easeOutBack,
-                      builder: (context, value, child) {
-                        return Transform.scale(scale: value, child: child);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
+              ),
+
+              SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: CircleAvatar(
+                          backgroundColor: Colors.white12,
+                          child: IconButton(
+                            onPressed: () {},
+                            icon: const Icon(
+                              Icons.dark_mode,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12),
+                          color: Colors.white.withOpacity(.08),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(color: Colors.white24),
                         ),
-                        child: Column(
+                        child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(22),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.cyanAccent.withOpacity(0.6),
-                                    blurRadius: 30,
-                                    spreadRadius: 6,
-                                  ),
-                                ],
-                              ),
-                              child: TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0.9, end: 1.1),
-                                duration: const Duration(seconds: 2),
-                                curve: Curves.easeInOut,
-                                builder: (context, value, child) {
-                                  return Transform.scale(
-                                    scale: value,
-                                    child: child,
-                                  );
-                                },
-                                child: const Icon(
-                                  Icons.auto_awesome,
-                                  color: Colors.white,
-                                  size: 70,
-                                ),
-                              ),
+                            Icon(
+                              Icons.auto_awesome,
+                              color: Colors.cyan,
+                              size: 18,
                             ),
+                            SizedBox(width: 8),
+                            Text(
+                              "Welcome to the Future",
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
 
-                            const SizedBox(height: 18),
+                      const SizedBox(height: 24),
 
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF06B6D4), Color(0xFF7C3AED)],
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0xFF06B6D4),
+                              blurRadius: 40,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.smart_toy_rounded,
+                          size: 70,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      const Text(
+                        "LifeOS",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 42,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      const Text(
+                        "Your Life. Organized. Powered by AI.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 15),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.center,
+                        children: const [
+                          Chip(
+                            label: Text("Plan Smarter"),
+                            avatar: Icon(Icons.calendar_today, size: 18),
+                          ),
+                          Chip(
+                            label: Text("Stay Productive"),
+                            avatar: Icon(Icons.trending_up, size: 18),
+                          ),
+                          Chip(
+                            label: Text("Be Ahead"),
+                            avatar: Icon(Icons.bolt, size: 18),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 26),
+
+                      Container(
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(.08),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Column(
+                          children: [
                             const Text(
-                              "Welcome Back",
+                              "Welcome Back!",
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 30,
@@ -188,143 +302,137 @@ class _LoginScreenState extends State<LoginScreen>
 
                             const SizedBox(height: 6),
 
-                            Text(
-                              "Sign in to continue",
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                              ),
+                            const Text(
+                              "Login to continue your journey",
+                              style: TextStyle(color: Colors.white60),
                             ),
 
-                            const SizedBox(height: 28),
+                            const SizedBox(height: 24),
 
-                            TextField(
+                            textBox(
                               controller: emailController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                hintText: "Email",
-                                hintStyle: const TextStyle(
-                                  color: Colors.white70,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.email,
-                                  color: Colors.white,
-                                ),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.08),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
+                              hint: "Email",
+                              icon: Icons.email_outlined,
                             ),
 
                             const SizedBox(height: 16),
 
-                            TextField(
+                            textBox(
                               controller: passwordController,
-                              obscureText: hidePassword,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                hintText: "Password",
-                                hintStyle: const TextStyle(
-                                  color: Colors.white70,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.lock,
-                                  color: Colors.white,
-                                ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    hidePassword
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                    color: Colors.white,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      hidePassword = !hidePassword;
-                                    });
+                              hint: "Password",
+                              icon: Icons.lock_outline,
+                              password: true,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: rememberMe,
+                                  onChanged: (v) {
+                                    setState(() => rememberMe = v ?? false);
                                   },
                                 ),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.08),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(18),
-                                  borderSide: BorderSide.none,
+                                const Text(
+                                  "Remember me",
+                                  style: TextStyle(color: Colors.white70),
                                 ),
-                              ),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: () {},
+                                  child: const Text("Forgot Password?"),
+                                ),
+                              ],
                             ),
 
-                            const SizedBox(height: 20),
-
-                            InkWell(
-                              borderRadius: BorderRadius.circular(30),
-                              onTap: () {},
-                              child: Container(
-                                padding: const EdgeInsets.all(15),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withOpacity(0.12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.cyanAccent.withOpacity(0.5),
-                                      blurRadius: 20,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.fingerprint,
-                                  size: 34,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 22),
+                            const SizedBox(height: 12),
 
                             Container(
                               width: double.infinity,
                               height: 58,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(18),
-                                boxShadow: [
+                                borderRadius: BorderRadius.circular(30),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF7C3AED),
+                                    Color(0xFF2563EB),
+                                  ],
+                                ),
+                                boxShadow: const [
                                   BoxShadow(
-                                    color: const Color(
-                                      0xFF06B6D4,
-                                    ).withOpacity(0.6),
-                                    blurRadius: 25,
-                                    spreadRadius: 2,
+                                    color: Color(0xFF2563EB),
+                                    blurRadius: 30,
                                   ),
                                 ],
                               ),
                               child: ElevatedButton(
                                 onPressed: loading ? null : login,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF06B6D4),
-                                  elevation: 0,
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
+                                    borderRadius: BorderRadius.circular(30),
                                   ),
                                 ),
                                 child: loading
                                     ? const CircularProgressIndicator(
                                         color: Colors.white,
                                       )
-                                    : const Text(
-                                        "Sign In",
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
+                                    : const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "Login",
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Icon(
+                                            Icons.arrow_forward,
+                                            color: Colors.white,
+                                          ),
+                                        ],
                                       ),
                               ),
                             ),
 
                             const SizedBox(height: 18),
 
-                            TextButton(
-                              onPressed: () {
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: OutlinedButton.icon(
+                                onPressed: loading ? null : googleLogin,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.white24),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                icon: const Icon(
+                                  Icons.g_mobiledata,
+                                  color: Colors.white,
+                                  size: 34,
+                                ),
+                                label: const Text(
+                                  "Continue with Google",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 18),
+
+                            InkWell(
+                              onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -332,22 +440,44 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 );
                               },
-                              child: const Text(
-                                "Create Account",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
+                              child: const Text.rich(
+                                TextSpan(
+                                  text: "New to LifeOS AI? ",
+                                  style: TextStyle(color: Colors.white70),
+                                  children: [
+                                    TextSpan(
+                                      text: "Create an Account →",
+                                      style: TextStyle(
+                                        color: Colors.cyanAccent,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
+
+                      const SizedBox(height: 20),
+
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.security, color: Colors.white38, size: 18),
+                          SizedBox(width: 6),
+                          Text(
+                            "Secure • Private • Always With You",
+                            style: TextStyle(color: Colors.white38),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

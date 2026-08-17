@@ -18,12 +18,14 @@ import 'screens/search_screen.dart';
 import 'services/notification_service.dart';
 import 'theme/lifeos_theme.dart';
 import 'theme/lifeos_ui.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); // Add this line
   await NotificationService.init();
 
-  runApp(const LifeOSAI()); // ✅ Fixed
+  runApp(const LifeOSAI());
 }
 
 class LifeOSAI extends StatelessWidget {

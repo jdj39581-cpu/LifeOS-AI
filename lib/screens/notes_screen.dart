@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:printing/printing.dart';
 
 import '../services/api_service.dart';
 
@@ -37,7 +39,7 @@ class _NotesScreenState extends State<NotesScreen> {
 
     pdf.addPage(
       pw.Page(
-        build: (context) => pw.Column(
+        build: (_) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text(
@@ -51,18 +53,23 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
     );
 
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/${note["title"]}.pdf");
+    final bytes = await pdf.save();
 
-    await file.writeAsBytes(await pdf.save());
+    if (kIsWeb) {
+      await Printing.sharePdf(bytes: bytes, filename: "${note["title"]}.pdf");
+    } else {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File("${dir.path}/${note["title"]}.pdf");
+
+      await file.writeAsBytes(bytes);
+      await OpenFilex.open(file.path);
+    }
 
     if (!mounted) return;
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text("PDF Saved: ${note["title"]}.pdf")));
-
-    await OpenFilex.open(file.path);
+    ).showSnackBar(SnackBar(content: Text("PDF Ready: ${note["title"]}.pdf")));
   }
 
   Future<void> showAddNoteDialog() async {
@@ -227,8 +234,7 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(backgroundColor: const Color(0xFF0F172A), elevation: 0, title: const Text("My Notes"), centerTitle: true),
+      appBar: AppBar(title: const Text("My Notes"), centerTitle: true),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : notes.isEmpty

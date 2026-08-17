@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = "https://lifeos-ai-zois.onrender.com";
+  static const String baseUrl = "https://lifeos-ai-backend-6gxp.onrender.com";
 
   static String token = "";
 
@@ -663,5 +663,4 @@ class ApiService {
 
     return response.statusCode == 200;
   }
-  
 }
