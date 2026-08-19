@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/login_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -34,7 +35,7 @@ class AppDrawer extends StatelessWidget {
           menu(context, Icons.alarm, "Reminders", "/reminders"),
           menu(context, Icons.account_balance_wallet, "Expenses", "/expenses"),
 
-          // NEW
+          // Habits
           menu(context, Icons.local_fire_department, "Habits", "/habits"),
 
           menu(context, Icons.flag, "Goals", "/goals"),
@@ -52,7 +53,11 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.logout),
             title: const Text("Logout"),
             onTap: () {
-              Navigator.pushNamedAndRemoveUntil(context, "/", (route) => false);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
             },
           ),
         ],

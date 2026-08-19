@@ -18,13 +18,13 @@ class _LoginScreenState extends State<LoginScreen>
 
   bool loading = false;
   bool hidePassword = true;
-  bool rememberMe = true;
 
   late AnimationController controller;
 
   @override
   void initState() {
     super.initState();
+
     controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 6),
@@ -57,9 +57,9 @@ class _LoginScreenState extends State<LoginScreen>
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
       );
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Login failed")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Invalid email or password")),
+      );
     }
   }
 
@@ -153,7 +153,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
               ),
-
               Positioned(
                 bottom: -120,
                 right: -80,
@@ -166,7 +165,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
               ),
-
               SafeArea(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(22),
@@ -185,9 +183,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 18,
@@ -214,9 +210,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 24),
-
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -238,9 +232,7 @@ class _LoginScreenState extends State<LoginScreen>
                           color: Colors.white,
                         ),
                       ),
-
                       const SizedBox(height: 18),
-
                       const Text(
                         "LifeOS",
                         style: TextStyle(
@@ -249,17 +241,13 @@ class _LoginScreenState extends State<LoginScreen>
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
                       const Text(
                         "Your Life. Organized. Powered by AI.",
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.white70, fontSize: 15),
                       ),
-
                       const SizedBox(height: 18),
-
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
@@ -279,9 +267,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 26),
-
                       Container(
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
@@ -299,55 +285,33 @@ class _LoginScreenState extends State<LoginScreen>
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-
                             const SizedBox(height: 6),
-
                             const Text(
                               "Login to continue your journey",
                               style: TextStyle(color: Colors.white60),
                             ),
-
                             const SizedBox(height: 24),
-
                             textBox(
                               controller: emailController,
                               hint: "Email",
                               icon: Icons.email_outlined,
                             ),
-
                             const SizedBox(height: 16),
-
                             textBox(
                               controller: passwordController,
                               hint: "Password",
                               icon: Icons.lock_outline,
                               password: true,
                             ),
-
-                            const SizedBox(height: 16),
-
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: rememberMe,
-                                  onChanged: (v) {
-                                    setState(() => rememberMe = v ?? false);
-                                  },
-                                ),
-                                const Text(
-                                  "Remember me",
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                                const Spacer(),
-                                TextButton(
-                                  onPressed: () {},
-                                  child: const Text("Forgot Password?"),
-                                ),
-                              ],
-                            ),
-
                             const SizedBox(height: 12),
-
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () {},
+                                child: const Text("Forgot Password?"),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
                             Container(
                               width: double.infinity,
                               height: 58,
@@ -400,9 +364,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       ),
                               ),
                             ),
-
                             const SizedBox(height: 18),
-
                             SizedBox(
                               width: double.infinity,
                               height: 52,
@@ -428,9 +390,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                             ),
-
                             const SizedBox(height: 18),
-
                             InkWell(
                               onTap: () {
                                 Navigator.push(
@@ -459,9 +419,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
                       const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

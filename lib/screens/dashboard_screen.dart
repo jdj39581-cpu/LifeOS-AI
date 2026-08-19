@@ -36,9 +36,12 @@ class _DashboardScreenState extends State<DashboardScreen>
   String humidity = "--%";
   String wind = "-- m/s";
   String feelsLike = "--°C";
-  int pendingTasks = 3;
-  int todayEvents = 2;
-  double todayExpense = 450;
+
+  String userName = "User";
+
+  int pendingTasks = 0;
+  int todayEvents = 0;
+  double todayExpense = 0;
 
   late Timer _clockTimer;
   DateTime _now = DateTime.now();
@@ -49,6 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   void initState() {
     super.initState();
+    loadDashboardData();
     loadWeather();
 
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -110,6 +114,31 @@ class _DashboardScreenState extends State<DashboardScreen>
         wind = "-- m/s";
         feelsLike = "--°C";
       });
+    }
+  }
+
+  Future<void> loadDashboardData() async {
+    try {
+      final profile = await ApiService.getProfile();
+      final dashboard = await ApiService.getDashboard();
+      final events = await ApiService.getEvents();
+      final expenses = await ApiService.getExpenses();
+
+      double spent = 0;
+      for (var e in expenses) {
+        spent += double.tryParse(e["amount"].toString()) ?? 0;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        userName = profile["name"] ?? "User";
+        pendingTasks = dashboard["pending_tasks"] ?? 0;
+        todayEvents = events.length;
+        todayExpense = spent;
+      });
+    } catch (e) {
+      print("Dashboard Error: $e");
     }
   }
 
@@ -643,8 +672,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                     ),
                                   ),
                                   const SizedBox(height: 6),
-                                  const Text(
-                                    "Joyson",
+                                  Text(
+                                    userName,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 32,
@@ -740,7 +769,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                             SizedBox(
                               width: 80,
                               height: 80,
-                              child: Lottie.network(getWeatherAnimation()),
+                              child: const Icon(
+                                Icons.cloud,
+                                size: 60,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         ),

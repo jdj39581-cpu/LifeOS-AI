@@ -21,9 +21,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   Future<void> loadExpenses() async {
     setState(() => loading = true);
-
     expenses = await ApiService.getExpenses();
-
     if (!mounted) return;
     setState(() => loading = false);
   }
@@ -114,7 +112,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
               if (success) {
                 await loadExpenses();
-
                 if (!mounted) return;
 
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -172,6 +169,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               ),
             ),
           ),
+
           Expanded(
             child: loading
                 ? const Center(child: CircularProgressIndicator())
@@ -187,6 +185,11 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         padding: const EdgeInsets.only(bottom: 10),
                         child: LifeOSCard(
                           child: ListTile(
+                            isThreeLine: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             leading: const CircleAvatar(
                               backgroundColor: Color(0x2206B6D4),
                               child: Icon(
@@ -204,7 +207,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                               ],
                             ),
                             trailing: SizedBox(
-                              width: 55,
+                              width: 70,
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -217,6 +220,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                       fontSize: 13,
                                     ),
                                   ),
+                                  const SizedBox(height: 6),
                                   IconButton(
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),

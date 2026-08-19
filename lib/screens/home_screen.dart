@@ -17,12 +17,15 @@ class _HomeScreenState extends State<HomeScreen>
   Map<String, dynamic> dashboard = {};
   Map<String, dynamic>? weather;
   bool loading = true;
+  String userName = "User";
+
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -31,19 +34,27 @@ class _HomeScreenState extends State<HomeScreen>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.12).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
     loadDashboard();
     loadWeather();
   }
 
   Future<void> loadDashboard() async {
     dashboard = await ApiService.getDashboard();
-    if (mounted) {
-      setState(() => loading = false);
-    }
+
+    final profile = await ApiService.getProfile();
+
+    if (!mounted) return;
+
+    setState(() {
+      userName = profile["name"] ?? "User";
+      loading = false;
+    });
   }
 
   Future<void> loadWeather() async {
     final position = await LocationService.getLocation();
+
     if (position == null) return;
 
     weather = await WeatherService.getWeather(
@@ -120,19 +131,19 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget welcomeCard() {
     return glassCard(
-      const Column(
+      Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "👋 Welcome, Joyson",
-            style: TextStyle(
+            "👋 Welcome, $userName",
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             "Your AI-powered life companion",
             style: TextStyle(color: Colors.white70),
           ),
@@ -146,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       drawer: const AppDrawer(),
       backgroundColor: Colors.transparent,
+
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F172A),
         elevation: 0,
@@ -166,6 +178,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
+
       floatingActionButton: ScaleTransition(
         scale: _pulseAnimation,
         child: FloatingActionButton(
@@ -174,6 +187,7 @@ class _HomeScreenState extends State<HomeScreen>
           child: const Icon(Icons.auto_awesome, color: Colors.white),
         ),
       ),
+
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -182,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen>
             end: Alignment.bottomRight,
           ),
         ),
+
         child: loading
             ? const Center(
                 child: CircularProgressIndicator(color: Colors.white),
@@ -191,6 +206,7 @@ class _HomeScreenState extends State<HomeScreen>
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(18),
+
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -219,7 +235,9 @@ class _HomeScreenState extends State<HomeScreen>
                                   size: 50,
                                 ),
                               ),
+
                               const SizedBox(width: 15),
+
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -231,6 +249,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+
                                   Text(
                                     "${weather!["main"]["temp"]}°C",
                                     style: const TextStyle(
@@ -238,6 +257,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       fontSize: 18,
                                     ),
                                   ),
+
                                   Text(
                                     weather!["weather"][0]["description"],
                                     style: const TextStyle(
@@ -268,25 +288,29 @@ class _HomeScreenState extends State<HomeScreen>
                           Expanded(
                             child: DashboardCard(
                               title: "Tasks",
-                              value: "${dashboard["total_tasks"]}",
+                              value: "${dashboard["total_tasks"] ?? 0}",
                               icon: Icons.task,
                               color: Colors.orange,
                             ),
                           ),
+
                           const SizedBox(width: 10),
+
                           Expanded(
                             child: DashboardCard(
                               title: "Done",
-                              value: "${dashboard["completed_tasks"]}",
+                              value: "${dashboard["completed_tasks"] ?? 0}",
                               icon: Icons.check_circle,
                               color: Colors.green,
                             ),
                           ),
+
                           const SizedBox(width: 10),
+
                           Expanded(
                             child: DashboardCard(
                               title: "Pending",
-                              value: "${dashboard["pending_tasks"]}",
+                              value: "${dashboard["pending_tasks"] ?? 0}",
                               icon: Icons.pending_actions,
                               color: Colors.red,
                             ),
@@ -303,6 +327,7 @@ class _HomeScreenState extends State<HomeScreen>
                         crossAxisSpacing: 15,
                         mainAxisSpacing: 15,
                         childAspectRatio: 1,
+
                         children: [
                           buildCard(
                             context,
@@ -311,6 +336,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.orange,
                             "/tasks",
                           ),
+
                           buildCard(
                             context,
                             Icons.note,
@@ -318,6 +344,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.blue,
                             "/notes",
                           ),
+
                           buildCard(
                             context,
                             Icons.alarm,
@@ -325,6 +352,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.red,
                             "/reminders",
                           ),
+
                           buildCard(
                             context,
                             Icons.account_balance_wallet,
@@ -332,6 +360,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.green,
                             "/expenses",
                           ),
+
                           buildCard(
                             context,
                             Icons.flag,
@@ -339,6 +368,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.purple,
                             "/goals",
                           ),
+
                           buildCard(
                             context,
                             Icons.local_fire_department,
@@ -346,6 +376,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.deepOrange,
                             "/habits",
                           ),
+
                           buildCard(
                             context,
                             Icons.notifications,
@@ -353,6 +384,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.amber,
                             "/notifications",
                           ),
+
                           buildCard(
                             context,
                             Icons.analytics,
@@ -360,6 +392,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.cyan,
                             "/analytics",
                           ),
+
                           buildCard(
                             context,
                             Icons.smart_toy,
@@ -367,6 +400,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.teal,
                             "/ai",
                           ),
+
                           buildCard(
                             context,
                             Icons.event,
@@ -374,6 +408,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.deepPurple,
                             "/events",
                           ),
+
                           buildCard(
                             context,
                             Icons.folder,
@@ -381,6 +416,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.indigo,
                             "/documents",
                           ),
+
                           buildCard(
                             context,
                             Icons.person,
@@ -388,6 +424,7 @@ class _HomeScreenState extends State<HomeScreen>
                             Colors.brown,
                             "/profile",
                           ),
+
                           buildCard(
                             context,
                             Icons.calendar_month,
