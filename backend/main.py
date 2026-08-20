@@ -304,6 +304,38 @@ def login(
         "access_token": token,
         "token_type": "bearer"
     }
+class GoogleLogin(BaseModel):
+    email: str
+    name: str
+
+@app.post("/google-login")
+def google_login(data: GoogleLogin):
+    cursor.execute(
+        "SELECT id, name, email FROM users WHERE email=%s",
+        (data.email,)
+    )
+    user = cursor.fetchone()
+
+    if not user:
+        cursor.execute(
+            "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)",
+            (data.name, data.email, "google_account")
+        )
+        db.commit()
+
+        cursor.execute(
+            "SELECT id, name, email FROM users WHERE email=%s",
+            (data.email,)
+        )
+        user = cursor.fetchone()
+
+    token = create_access_token({"sub": user[2]})
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "name": user[1]
+    }
 
 
 # ============================================================
